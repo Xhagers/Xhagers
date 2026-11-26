@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="day">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ñuqamanta | Portafolio Pixel-Art</title>
+  <meta name="description" content="Portafolio personal interactivo estilo pixel-art con proyectos de código, juegos y canvas." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='7' y='1' width='2' height='2' fill='%231E2B2A'/><rect x='6' y='3' width='4' height='2' fill='%231E2B2A'/><rect x='4' y='5' width='8' height='2' fill='%231E2B2A'/><rect x='5' y='7' width='6' height='2' fill='%231E2B2A'/><rect x='3' y='9' width='10' height='2' fill='%231E2B2A'/><rect x='2' y='11' width='12' height='2' fill='%231E2B2A'/><rect x='7' y='13' width='2' height='3' fill='%235C4438'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="canvas-shell">
+
+    <!-- HEADER DE NAVEGACIÓN -->
+    <header class="site-header container">
+      <a href="#presentacion" class="brand" title="Volver al inicio" aria-label="Ir a presentación">
+        <svg id="brand-pine" class="icon-pine pixel-art" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <rect x="7" y="1" width="2" height="2" fill="currentColor"/>
+          <rect x="6" y="3" width="4" height="2" fill="currentColor"/>
+          <rect x="4" y="5" width="8" height="2" fill="currentColor"/>
+          <rect x="5" y="7" width="6" height="2" fill="currentColor"/>
+          <rect x="3" y="9" width="10" height="2" fill="currentColor"/>
+          <rect x="2" y="11" width="12" height="2" fill="currentColor"/>
+          <rect x="7" y="13" width="2" height="3" fill="#8C6754"/>
+        </svg>
+        <span class="brand-name">My projects</span>
+      </a>
+
+      <nav class="site-nav" aria-label="Navegación principal">
+        <a href="#presentacion" class="nav-link">Presentación</a>
+        <a href="#proyectos" class="nav-link">Proyectos</a>
+
+        <!-- Controles interactivos: Sonido y Tema -->
+        <div class="nav-controls">
+          <button id="btn-sound-toggle" type="button" class="nav-icon-btn" title="Activar/Silenciar efectos de sonido 8-bit" aria-label="Alternar sonido">
+            <svg id="sound-icon-on" class="icon-sm" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M7 3L3.5 6H1v4h2.5L7 13V3z" fill="currentColor"/>
+              <path d="M10 5a4 4 0 0 1 0 6"/>
+              <path d="M12 3a7 7 0 0 1 0 10"/>
+            </svg>
+            <svg id="sound-icon-off" class="icon-sm hidden" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M7 3L3.5 6H1v4h2.5L7 13V3z" fill="currentColor"/>
+              <line x1="11" y1="6" x2="15" y2="10"/>
+              <line x1="15" y1="6" x2="11" y2="10"/>
+            </svg>
+          </button>
+
+          <button id="btn-theme-toggle" type="button" class="nav-icon-btn" title="Cambiar a Modo Noche / Día" aria-label="Cambiar tema día/noche">
+            <span id="theme-icon-sun" class="theme-icon">☀️</span>
+            <span id="theme-icon-moon" class="theme-icon hidden">🌙</span>
+          </button>
+
+          <button id="btn-nav-admin" type="button" class="nav-admin-btn" title="Acceso privado del propietario" aria-label="Acceso Propietario">
+            <svg class="icon-sm" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.4"/>
+            </svg>
+            <span id="admin-nav-label">Hatsu</span>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <!-- BARRA DEL PROPIETARIO (ADMIN) -->
+    <aside id="owner-toolbar" class="owner-toolbar container hidden" aria-label="Herramientas del propietario">
+      <div class="owner-bar-inner">
+        <div class="owner-status">
+          <span class="dot-coral pulse-dot"></span>
+          <strong>Modo Propietario</strong>
+          <span class="badge-soft">LocalStorage</span>
+        </div>
+        <div class="owner-actions">
+          <button id="btn-owner-add-project" type="button" class="btn btn-coral btn-sm">+ Publicar</button>
+          <button id="btn-owner-edit-profile" type="button" class="btn btn-ghost btn-sm">Editar Perfil</button>
+          <button id="btn-owner-backup" type="button" class="btn btn-ghost btn-sm">Respaldo JSON</button>
+          <button id="btn-owner-pin" type="button" class="btn btn-ghost btn-sm">Cambiar PIN</button>
+          <button id="btn-owner-logout" type="button" class="btn-link">Salir</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="container main-content">
+
+      <!-- SECCIÓN HERO / PRESENTACIÓN -->
+      <section id="presentacion" class="hero" aria-labelledby="profile-name">
+        <div class="hero-text">
+          <div class="pill-tag">
+            <span class="dot-green pulse-dot"></span>
+            <span id="hero-tag-text">Misterio muy misterioso</span>
+          </div>
+
+          <h1 id="profile-name" class="hero-title">Gerson Ramirez</h1>
+          <p id="profile-role" class="hero-role">Fanatico y Observador</p>
+          <p id="profile-bio" class="hero-bio"></p>
+
+          <div id="profile-tags" class="tags-list" aria-label="Habilidades y tecnologías"></div>
+
+          <div class="hero-buttons">
+            <a href="#proyectos" class="btn btn-coral">
+              <span>Proyectos</span>
+              <span class="btn-arrow" aria-hidden="true">↓</span>
+            </a>
+            <button id="btn-hero-admin-access" type="button" class="btn btn-ghost">
+              <span id="hero-admin-btn-text">¿Eres tu?</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- VISUAL INTERACTIVO: GATITO PIXEL-ART -->
+        <div class="hero-visual">
+          <div class="cat-stage" id="cat-stage" title="¡Haz clic en el gatito para acariciarlo!">
+            <div class="cat-halo"></div>
+
+            <!-- Bocadillo de diálogo del gatito -->
+            <div id="cat-bubble" class="cat-speech-bubble hidden" role="status" aria-live="polite">
+              Nya~ ✨
+            </div>
+
+            <!-- SVG del gatito con detalles y animaciones avanzadas -->
+            <svg id="cat-svg-hero" class="cat-svg pixel-art hero-cat-bounce" viewBox="0 0 36 36" fill="none" aria-label="Gatito blanco pixel-art interactivo">
+              <!-- Notas musicales flotantes -->
+              <g class="note-a">
+                <rect x="4" y="6" width="1" height="4" fill="#E46B61"/>
+                <rect x="5" y="6" width="2" height="1" fill="#E46B61"/>
+                <rect x="3" y="9" width="2" height="2" fill="#E46B61"/>
+              </g>
+              <g class="note-b">
+                <rect x="29" y="4" width="1" height="4" fill="#1E2B2A"/>
+                <rect x="32" y="3" width="1" height="4" fill="#1E2B2A"/>
+                <rect x="29" y="4" width="4" height="1" fill="#1E2B2A"/>
+                <rect x="28" y="7" width="2" height="2" fill="#1E2B2A"/>
+                <rect x="31" y="6" width="2" height="2" fill="#1E2B2A"/>
+              </g>
+
+              <!-- Alas con aleteo suave -->
+              <g class="wing-left">
+                <rect x="5" y="17" width="4" height="3" fill="#FFFFFF"/>
+                <rect x="4" y="16" width="3" height="2" fill="#E8F2F0"/>
+                <rect x="4" y="15" width="4" height="1" fill="#1E2B2A"/>
+                <rect x="3" y="16" width="1" height="3" fill="#1E2B2A"/>
+                <rect x="4" y="19" width="2" height="1" fill="#1E2B2A"/>
+                <rect x="6" y="20" width="3" height="1" fill="#1E2B2A"/>
+              </g>
+              <g class="wing-right">
+                <rect x="27" y="17" width="4" height="3" fill="#FFFFFF"/>
+                <rect x="29" y="16" width="3" height="2" fill="#E8F2F0"/>
+                <rect x="28" y="15" width="4" height="1" fill="#1E2B2A"/>
+                <rect x="32" y="16" width="1" height="3" fill="#1E2B2A"/>
+                <rect x="30" y="19" width="2" height="1" fill="#1E2B2A"/>
+                <rect x="27" y="20" width="3" height="1" fill="#1E2B2A"/>
+              </g>
+
+              <!-- Orejitas con movimiento independiente -->
+              <g class="ear-wiggle">
+                <rect x="11" y="5" width="1" height="4" fill="#1E2B2A"/>
+                <rect x="12" y="4" width="1" height="1" fill="#1E2B2A"/>
+                <rect x="13" y="5" width="1" height="2" fill="#1E2B2A"/>
+                <rect x="14" y="7" width="1" height="1" fill="#1E2B2A"/>
+                <rect x="12" y="5" width="1" height="4" fill="#FFFFFF"/>
+                <rect x="13" y="7" width="1" height="2" fill="#F6B2AC"/>
+                <rect x="24" y="5" width="1" height="4" fill="#1E2B2A"/>
+                <rect x="23" y="4" width="1" height="1" fill="#1E2B2A"/>
+                <rect x="22" y="5" width="1" height="2" fill="#1E2B2A"/>
+                <rect x="21" y="7" width="1" height="1" fill="#1E2B2A"/>
+                <rect x="23" y="5" width="1" height="4" fill="#FFFFFF"/>
+                <rect x="22" y="7" width="1" height="2" fill="#F6B2AC"/>
+              </g>
+
+              <!-- Cabeza del gatito -->
+              <rect x="15" y="7" width="6" height="1" fill="#1E2B2A"/>
+              <rect x="11" y="8" width="14" height="9" fill="#FFFFFF"/>
+              <rect x="10" y="10" width="16" height="6" fill="#FFFFFF"/>
+              <rect x="11" y="16" width="14" height="1" fill="#E8F1EF"/>
+              <rect x="10" y="9" width="1" height="7" fill="#1E2B2A"/>
+              <rect x="25" y="9" width="1" height="7" fill="#1E2B2A"/>
+              <rect x="11" y="16" width="1" height="1" fill="#1E2B2A"/>
+              <rect x="24" y="16" width="1" height="1" fill="#1E2B2A"/>
+              <rect x="12" y="17" width="12" height="1" fill="#1E2B2A"/>
+
+              <!-- Bigotes -->
+              <rect x="8" y="12" width="2" height="1" fill="#1E2B2A"/>
+              <rect x="8" y="14" width="2" height="1" fill="#1E2B2A"/>
+              <rect x="26" y="12" width="2" height="1" fill="#1E2B2A"/>
+              <rect x="26" y="14" width="2" height="1" fill="#1E2B2A"/>
+
+              <!-- Ojos con parpadeo y pupila seguidora -->
+              <g class="cat-eyes-blink">
+                <g id="cat-pupils" class="cat-pupils">
+                  <rect x="13" y="12" width="1" height="1" fill="#1E2B2A"/>
+                  <rect x="14" y="11" width="1" height="1" fill="#1E2B2A"/>
+                  <rect x="15" y="12" width="1" height="1" fill="#1E2B2A"/>
+                  <rect x="20" y="12" width="1" height="1" fill="#1E2B2A"/>
+                  <rect x="21" y="11" width="1" height="1" fill="#1E2B2A"/>
+                  <rect x="22" y="12" width="1" height="1" fill="#1E2B2A"/>
+                </g>
+              </g>
+
+              <!-- Mejillas sonrosadas y hocico -->
+              <rect x="12" y="13" width="2" height="1" fill="#E46B61"/>
+              <rect x="22" y="13" width="2" height="1" fill="#E46B61"/>
+              <rect x="17" y="13" width="2" height="1" fill="#1E2B2A"/>
+              <rect x="17" y="14" width="2" height="2" fill="#E46B61"/>
+              <rect x="16" y="14" width="1" height="1" fill="#1E2B2A"/>
+              <rect x="19" y="14" width="1" height="1" fill="#1E2B2A"/>
+
+              <!-- Cuerpo -->
+              <rect x="12" y="18" width="12" height="9" fill="#FFFFFF"/>
+              <rect x="11" y="19" width="14" height="7" fill="#FFFFFF"/>
+              <rect x="15" y="20" width="6" height="5" fill="#F4F7F2"/>
+              <rect x="25" y="19" width="2" height="6" fill="#6F9A91"/>
+              <rect x="27" y="20" width="1" height="4" fill="#1E2B2A"/>
+              <rect x="25" y="18" width="2" height="1" fill="#1E2B2A"/>
+              <rect x="25" y="25" width="2" height="1" fill="#1E2B2A"/>
+              <rect x="10" y="19" width="1" height="7" fill="#1E2B2A"/>
+              <rect x="25" y="19" width="1" height="7" fill="#1E2B2A"/>
+
+              <!-- Patitas delanteras -->
+              <rect x="9" y="18" width="2" height="3" fill="#FFFFFF"/>
+              <rect x="8" y="18" width="1" height="3" fill="#1E2B2A"/>
+              <rect x="9" y="17" width="2" height="1" fill="#1E2B2A"/>
+              <rect x="25" y="16" width="2" height="3" fill="#FFFFFF"/>
+              <rect x="27" y="16" width="1" height="3" fill="#1E2B2A"/>
+              <rect x="25" y="15" width="2" height="1" fill="#1E2B2A"/>
+
+              <!-- Patitas inferiores -->
+              <rect x="12" y="27" width="4" height="3" fill="#FFFFFF"/>
+              <rect x="20" y="27" width="4" height="3" fill="#FFFFFF"/>
+              <rect x="11" y="27" width="1" height="3" fill="#1E2B2A"/>
+              <rect x="16" y="27" width="1" height="3" fill="#1E2B2A"/>
+              <rect x="12" y="30" width="4" height="1" fill="#1E2B2A"/>
+              <rect x="19" y="27" width="1" height="3" fill="#1E2B2A"/>
+              <rect x="24" y="27" width="1" height="3" fill="#1E2B2A"/>
+              <rect x="20" y="30" width="4" height="1" fill="#1E2B2A"/>
+              <rect x="17" y="27" width="2" height="1" fill="#1E2B2A"/>
+
+              <!-- Colita con animación viva de vaivén -->
+              <g id="cat-tail" class="cat-tail">
+                <rect x="25" y="25" width="4" height="2" fill="#FFFFFF"/>
+                <rect x="28" y="24" width="2" height="2" fill="#FFFFFF"/>
+                <rect x="26" y="24" width="2" height="1" fill="#1E2B2A"/>
+                <rect x="28" y="23" width="2" height="1" fill="#1E2B2A"/>
+                <rect x="30" y="24" width="1" height="2" fill="#1E2B2A"/>
+                <rect x="26" y="27" width="3" height="1" fill="#1E2B2A"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cat-shadow"></div>
+
+          <!-- Botón de interacción / contador de mimos -->
+          <button id="btn-pet-cat" type="button" class="cat-pet-btn" title="¡Haz clic para acariciar!">
+            <span class="pet-heart">♥</span>
+            <span id="pet-count-label">Acaríciame</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- SECCIÓN DE PROYECTOS -->
+      <section id="proyectos" class="projects-section" aria-labelledby="projects-heading">
+        <div class="projects-header">
+          <div class="projects-title-group">
+            <div class="projects-title-row">
+              <h2 id="projects-heading" class="section-title">Proyectos</h2>
+              <span id="projects-count" class="badge-soft">0 proyectos</span>
+            </div>
+            <p class="section-subtitle">Explora experimentos, códigos fuente y prototipos interactivos.</p>
+          </div>
+
+          <div class="projects-controls">
+            <!-- Barra de búsqueda mejorada -->
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <circle cx="7" cy="7" r="4.5"/>
+                <line x1="10.5" y1="10.5" x2="14" y2="14"/>
+              </svg>
+              <input id="search-projects" type="search" class="search-input" placeholder="Buscar proyecto o formato... (/)" aria-label="Buscar proyectos" />
+              <button id="btn-search-clear" type="button" class="search-clear-btn hidden" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">&times;</button>
+            </div>
+
+            <!-- Filtros por categoría -->
+            <div class="filter-tabs" role="tablist" aria-label="Filtrar por categoría">
+              <button type="button" data-filter="Todos" class="filter-tab active" role="tab" aria-selected="true">Todos</button>
+              <button type="button" data-filter="Códigos HTML" class="filter-tab" role="tab" aria-selected="false">Códigos HTML</button>
+              <button type="button" data-filter="Códigos Java" class="filter-tab" role="tab" aria-selected="false">Códigos Java</button>
+              <button type="button" data-filter="Jueguitos / Otros Formatos" class="filter-tab" role="tab" aria-selected="false">Jueguitos / Otros</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista dinámica de proyectos -->
+        <div id="projects-list" class="projects-list" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <!-- PAISAJE PIXEL-ART INFERIOR INTERACTIVO -->
+    <div class="scenery-wrapper" aria-hidden="true">
+      <div id="water-ripple-layer" class="water-ripple-layer" title="Haz clic en el agua"></div>
+      <svg class="scenery-svg pixel-art" viewBox="0 0 1200 220" preserveAspectRatio="xMidYMax slice" fill="none">
+        <defs>
+          <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--water-top, #88ABA5)" />
+            <stop offset="100%" stop-color="var(--water-bottom, #6E948E)" />
+          </linearGradient>
+        </defs>
+
+        <!-- Sol y Luna pixel-art -->
+        <g id="scenery-sun" class="celestial-sun">
+          <rect x="180" y="30" width="28" height="28" fill="#FDE047" opacity="0.9"/>
+          <rect x="176" y="34" width="36" height="20" fill="#FDE047" opacity="0.9"/>
+          <rect x="184" y="26" width="20" height="36" fill="#FDE047" opacity="0.9"/>
+        </g>
+        <g id="scenery-moon" class="celestial-moon hidden">
+          <rect x="180" y="30" width="24" height="24" fill="#FEF08A"/>
+          <rect x="188" y="28" width="20" height="28" fill="var(--sage, #16222F)"/>
+        </g>
+
+        <!-- Capa de estrellas para Modo Noche -->
+        <g id="scenery-stars" class="stars-layer hidden" fill="#FEF08A">
+          <rect x="120" y="24" width="2" height="2" class="star-twinkle-1"/>
+          <rect x="280" y="40" width="3" height="3" class="star-twinkle-2"/>
+          <rect x="420" y="18" width="2" height="2" class="star-twinkle-3"/>
+          <rect x="580" y="32" width="2" height="2" class="star-twinkle-1"/>
+          <rect x="710" y="15" width="3" height="3" class="star-twinkle-2"/>
+          <rect x="850" y="38" width="2" height="2" class="star-twinkle-3"/>
+          <rect x="1010" y="22" width="3" height="3" class="star-twinkle-1"/>
+          <rect x="1140" y="44" width="2" height="2" class="star-twinkle-2"/>
+        </g>
+
+        <!-- Nubes flotantes continuas -->
+        <g class="cloud-drift-a" fill="var(--cloud-color, #F4F7F2)">
+          <rect x="55" y="68" width="190" height="75"/>
+          <rect x="85" y="45" width="130" height="28"/>
+          <rect x="360" y="90" width="220" height="52"/>
+        </g>
+        <g class="cloud-drift-b" fill="var(--cloud-color, #F4F7F2)">
+          <rect x="740" y="72" width="210" height="70"/>
+          <rect x="920" y="48" width="220" height="95"/>
+        </g>
+
+        <!-- Montañas y colinas estilizadas -->
+        <polygon points="140,20 95,145 185,145" fill="var(--mountain-a, #89ADA4)" stroke="var(--ink, #1E2B2A)" stroke-width="1.5"/>
+        <polygon points="225,50 185,145 265,145" fill="var(--mountain-b, #7CA097)" stroke="var(--ink, #1E2B2A)" stroke-width="1.5"/>
+        <rect x="55" y="145" width="400" height="9" fill="var(--ground-strip, #B59B8C)" stroke="var(--ink, #1E2B2A)" stroke-width="1.5"/>
+
+        <polygon points="940,45 895,145 985,145" fill="var(--mountain-a, #89ADA4)" stroke="var(--ink, #1E2B2A)" stroke-width="1.5"/>
+        <polygon points="1045,22 995,145 1095,145" fill="var(--mountain-b, #7CA097)" stroke="var(--ink, #1E2B2A)" stroke-width="1.5"/>
+        <rect x="720" y="145" width="425" height="9" fill="var(--ground-strip, #B59B8C)" stroke="var(--ink, #1E2B2A)" stroke-width="1.5"/>
+
+        <!-- Agua y reflejos de onda -->
+        <rect x="0" y="154" width="1200" height="66" fill="url(#waterGrad)"/>
+        <line x1="0" y1="154" x2="1200" y2="154" stroke="var(--ink, #1E2B2A)" stroke-width="1.5"/>
+
+        <g class="water-ripple" fill="var(--ripple-color, #DCEAE7)">
+          <rect x="490" y="168" width="140" height="2"/>
+          <rect x="540" y="182" width="180" height="2.5"/>
+          <rect x="180" y="176" width="110" height="2" opacity="0.6"/>
+          <rect x="860" y="178" width="120" height="2" opacity="0.6"/>
+          <rect x="320" y="196" width="150" height="2" opacity="0.5"/>
+          <rect x="700" y="200" width="130" height="2" opacity="0.5"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ==================== MODALES ==================== -->
+
+  <!-- MODAL: PIN DE PROPIETARIO -->
+  <div id="modal-pin" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-pin-heading">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 id="modal-pin-heading">Prueba que eres yo -_-</h3>
+        <button type="button" data-close-modal="modal-pin" class="modal-close" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <form id="form-pin" class="form-stack">
+        <label class="field">
+          <span>Ingresa tu PIN de acceso</span>
+          <input id="input-pin" type="password" inputmode="numeric" maxlength="12" placeholder="••••" required autocomplete="current-password" />
+        </label>
+        <p id="pin-error-msg" class="error-msg hidden">¿Segura/o? PIN incorrecto.</p>
+        <div class="modal-footer">
+          <button type="button" data-close-modal="modal-pin" class="btn btn-ghost btn-sm">Cancelar</button>
+          <button type="submit" class="btn btn-coral btn-sm">Ingresar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR PROYECTO -->
+  <div id="modal-project" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-project-title">
+    <div class="modal-card modal-md">
+      <div class="modal-header">
+        <h3 id="modal-project-title">Publicar</h3>
+        <button type="button" data-close-modal="modal-project" class="modal-close" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <form id="form-project" class="form-stack">
+        <input type="hidden" id="project-id" />
+        <label class="field">
+          <span>Título del proyecto</span>
+          <input id="project-title" type="text" required placeholder="Ej. Calculadora Científica" />
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span>Categoría</span>
+            <select id="project-category" required>
+              <option value="Códigos HTML">Códigos HTML</option>
+              <option value="Códigos Java">Códigos Java</option>
+              <option value="Jueguitos / Otros Formatos">Otros Formatos</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Formato / Extensión</span>
+            <input id="project-format" type="text" required placeholder=".html, .java, .jar" />
+          </label>
+        </div>
+        <label class="field">
+          <span>Enlace externo (opcional)</span>
+          <input id="project-url" type="url" placeholder="https://github.com/usuario/proyecto" />
+        </label>
+        <label class="field">
+          <span>Descripción breve</span>
+          <textarea id="project-desc" rows="2" required placeholder="¿Qué hace este proyecto?"></textarea>
+        </label>
+        <label class="field">
+          <span>Código Fuente / Notas técnicas</span>
+          <textarea id="project-code" rows="6" class="mono-input" placeholder="// Pega aquí tu código..."></textarea>
+        </label>
+        <div class="modal-footer">
+          <button type="button" data-close-modal="modal-project" class="btn btn-ghost btn-sm">Cancelar</button>
+          <button type="submit" class="btn btn-coral btn-sm">Guardar Proyecto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR PERFIL -->
+  <div id="modal-profile" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-profile-heading">
+    <div class="modal-card modal-md">
+      <div class="modal-header">
+        <h3 id="modal-profile-heading">Editar Perfil</h3>
+        <button type="button" data-close-modal="modal-profile" class="modal-close" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <form id="form-profile" class="form-stack">
+        <label class="field">
+          <span>Nombre</span>
+          <input id="edit-profile-name" type="text" required />
+        </label>
+        <label class="field">
+          <span>Título / Rol</span>
+          <input id="edit-profile-role" type="text" required />
+        </label>
+        <label class="field">
+          <span>Biografía</span>
+          <textarea id="edit-profile-bio" rows="3" required></textarea>
+        </label>
+        <label class="field">
+          <span>Tecnologías (separadas por comas)</span>
+          <input id="edit-profile-tags" type="text" required placeholder="HTML5, Canvas, Java, Pixel Art" />
+        </label>
+        <div class="modal-footer">
+          <button type="button" data-close-modal="modal-profile" class="btn btn-ghost btn-sm">Cancelar</button>
+          <button type="submit" class="btn btn-coral btn-sm">Actualizar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: VISOR DE CÓDIGO Y VISTA PREVIA AVANZADO -->
+  <div id="modal-code-viewer" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="viewer-title">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <div class="viewer-title-row">
+            <h3 id="viewer-title">Código Fuente</h3>
+            <span id="viewer-format" class="badge-coral">.html</span>
+            <span id="viewer-lines" class="badge-soft">0 líneas</span>
+          </div>
+          <p id="viewer-desc" class="modal-desc"></p>
+        </div>
+        <button type="button" data-close-modal="modal-code-viewer" class="modal-close" aria-label="Cerrar visor">&times;</button>
+      </div>
+
+      <!-- Pestañas de Vista y Controles de Previsualización -->
+      <div class="viewer-top-bar">
+        <div id="viewer-tabs" class="viewer-tabs hidden" role="tablist">
+          <button type="button" id="tab-show-code" class="filter-tab active" role="tab" aria-selected="true">Código</button>
+          <button type="button" id="tab-show-preview" class="filter-tab" role="tab" aria-selected="false">Vista Previa en Vivo</button>
+        </div>
+
+        <div id="preview-viewport-controls" class="preview-controls hidden">
+          <button type="button" id="btn-preview-device-full" class="device-btn active" title="Pantalla Completa">💻 Desktop</button>
+          <button type="button" id="btn-preview-device-mobile" class="device-btn" title="Vista Móvil (375px)">📱 Mobile</button>
+          <button type="button" id="btn-preview-reload" class="device-btn" title="Recargar vista previa">🔄</button>
+        </div>
+      </div>
+
+      <!-- Panel de Código con resaltado de sintaxis -->
+      <div id="viewer-code-pane" class="code-box">
+        <pre><code id="viewer-code-content"></code></pre>
+      </div>
+
+      <!-- Panel de Vista Previa HTML -->
+      <div id="viewer-preview-pane" class="preview-box hidden">
+        <div id="preview-wrapper" class="preview-wrapper">
+          <iframe id="viewer-iframe" sandbox="allow-scripts" title="Vista previa en vivo del código HTML"></iframe>
+        </div>
+      </div>
+
+      <div class="modal-footer between">
+        <span class="text-muted">Vista pública interactiva</span>
+        <div class="btn-group">
+          <button id="btn-copy-code" type="button" class="btn btn-ghost btn-sm">
+            <span id="btn-copy-text">Copiar Código</span>
+          </button>
+          <button id="btn-download-code" type="button" class="btn btn-coral btn-sm">Descargar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMAR ELIMINACIÓN -->
+  <div id="modal-confirm-delete" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-del-heading">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 id="modal-del-heading">¿Eliminar publicación?</h3>
+        <button type="button" data-close-modal="modal-confirm-delete" class="modal-close" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <p id="delete-confirm-text" class="modal-desc"></p>
+      <div class="modal-footer">
+        <button type="button" data-close-modal="modal-confirm-delete" class="btn btn-ghost btn-sm">Cancelar</button>
+        <button id="btn-confirm-delete-action" type="button" class="btn btn-danger-soft btn-sm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CAMBIAR PIN -->
+  <div id="modal-change-pin" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-pin-change-heading">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 id="modal-pin-change-heading">Cambiar PIN</h3>
+        <button type="button" data-close-modal="modal-change-pin" class="modal-close" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <form id="form-change-pin" class="form-stack">
+        <label class="field">
+          <span>Nuevo PIN (mínimo 4 dígitos)</span>
+          <input id="new-admin-pin" type="password" inputmode="numeric" minlength="4" maxlength="12" required />
+        </label>
+        <div class="modal-footer">
+          <button type="button" data-close-modal="modal-change-pin" class="btn btn-ghost btn-sm">Cancelar</button>
+          <button type="submit" class="btn btn-coral btn-sm">Guardar PIN</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <input id="import-json-input" type="file" accept=".json" class="hidden" />
+
+  <!-- CONTENEDOR DE NOTIFICACIONES TOAST -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- SCRIPT PRINCIPAL -->
+  <script src="app.js"></script>
+</body>
+</html>
