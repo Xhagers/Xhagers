@@ -1,17 +1,19 @@
 /**
  * ============================================================================
- * ÑUQAMANTA PORTFOLIO - CORE APPLICATION
- * Architecture: Modular Lo-Fi Pixel Art Portfolio Engine
- * Features: Web Audio Chiptune Synthesizer, Interactive Cat Companion,
- *           Theme Engine (Day/Night), Syntax Highlighter, Live Preview Studio,
- *           Particle Systems, Easter Eggs, Full LocalStorage Admin CRUD.
+ * ÑUQAMANTA PORTFOLIO - CORE APPLICATION (SUPABASE INTEGRATED)
  * ============================================================================
  */
+
+// CREDENCIALES DE SUPABASE
+const SUPABASE_URL = "https://zsldrikjdkktctxfjnru.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_2pAmwL_JQFEcBpG4m-I4dQ_RsE6JzRH";
+
+// Inicializar cliente de Supabase
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // ==================== 1. CONSTANTES Y CONFIGURACIÓN ====================
 const STORAGE_KEYS = {
   PIN: "portfolio_owner_pin_v2",
-  PROJECTS: "portfolio_public_projects_v2",
   PROFILE: "portfolio_owner_profile_v2",
   THEME: "portfolio_theme_mode_v2",
   SOUND: "portfolio_sound_enabled_v2",
@@ -156,7 +158,75 @@ const state = {
   activeDeviceMode: "full"
 };
 
-// ==================== 3. UTILIDADES DOM & SEGURIDAD ====================
+// ==================== 3. LÓGICA DE SUPABASE (CONEXIÓN DIRECTA) ====================
+async function loadProjectsFromSupabase() {
+  if (!supabaseClient) {
+    state.projects = [...INITIAL_PROJECTS];
+    renderProjects();
+    return;
+  }
+  try {
+    const { data, error } = await supabaseClient
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      state.projects = data;
+    } else {
+      state.projects = [...INITIAL_PROJECTS];
+    }
+  } catch (err) {
+    console.warn("Error leyendo de Supabase, mostrando datos iniciales:", err);
+    state.projects = [...INITIAL_PROJECTS];
+  }
+  renderProjects();
+}
+
+async function saveProjectToSupabase(payload, id = null) {
+  if (!supabaseClient) {
+    showToast("Cliente de Supabase no cargado", true);
+    return;
+  }
+  try {
+    if (id && !String(id).startsWith("init-")) {
+      const { error } = await supabaseClient.from("projects").update(payload).eq("id", id);
+      if (error) throw error;
+      showToast("Proyecto actualizado en Supabase ✓");
+    } else {
+      const { error } = await supabaseClient.from("projects").insert([payload]);
+      if (error) throw error;
+      showToast("Proyecto publicado en Supabase ✓");
+    }
+    await loadProjectsFromSupabase();
+  } catch (err) {
+    showToast("Error al guardar en Supabase", true);
+    console.error("Error Supabase Save:", err);
+  }
+}
+
+async function deleteProjectFromSupabase(id) {
+  if (!supabaseClient) return;
+  if (String(id).startsWith("init-")) {
+    state.projects = state.projects.filter((p) => p.id !== id);
+    renderProjects();
+    showToast("Proyecto eliminado localmente ✓");
+    return;
+  }
+  try {
+    const { error } = await supabaseClient.from("projects").delete().eq("id", id);
+    if (error) throw error;
+    showToast("Proyecto eliminado de Supabase ✓");
+    await loadProjectsFromSupabase();
+  } catch (err) {
+    showToast("Error al eliminar de Supabase", true);
+    console.error("Error Supabase Delete:", err);
+  }
+}
+
+// ==================== 4. UTILIDADES DOM & SEGURIDAD ====================
 const $ = (id) => document.getElementById(id);
 
 function escapeHtml(str = "") {
@@ -204,7 +274,7 @@ function closeModal(id) {
   }
 }
 
-// ==================== 4. MOTOR DE AUDIO 8-BIT (WEB AUDIO API) ====================
+// ==================== 5. MOTOR DE AUDIO 8-BIT (WEB AUDIO API) ====================
 class ChiptuneAudioEngine {
   constructor() {
     this.ctx = null;
@@ -225,7 +295,7 @@ class ChiptuneAudioEngine {
     }
   }
 
-  ensureReady() {s
+  ensureReady() {
     if (!this.ctx) this.init();
     if (this.ctx && this.ctx.state === "suspended") {
       this.ctx.resume();
@@ -276,7 +346,6 @@ class ChiptuneAudioEngine {
 
     try {
       const now = this.ctx.currentTime;
-      // Melodía tipo 'miau' alegre
       const notes = [
         { f: 520, d: 0.07 },
         { f: 780, d: 0.12 },
@@ -334,7 +403,7 @@ class ChiptuneAudioEngine {
 
 const audio = new ChiptuneAudioEngine();
 
-// ==================== 5. CONTROLADOR DE TEMAS (DÍA / NOCHE) ====================
+// ==================== 6. CONTROLADOR DE TEMAS (DÍA / NOCHE) ====================
 function setTheme(newTheme, playSound = true) {
   state.theme = newTheme;
   document.documentElement.setAttribute("data-theme", newTheme);
@@ -368,54 +437,34 @@ function toggleSound() {
   showToast(state.soundEnabled ? "Efectos de sonido 8-bit activos 🔊" : "Sonido silenciado 🔇");
 }
 
-// ==================== 6. RESALTADOR DE SINTAXIS LIGERO ====================
+// ==================== 7. RESALTADOR DE SINTAXIS LIGERO ====================
 function highlightCode(code, format = "") {
   if (!code) return "";
   const ext = format.toLowerCase();
-
-  // Escapar HTML básico
   let escaped = escapeHtml(code);
 
   if (ext.includes("html") || ext.includes("xml")) {
-    // Comentarios HTML
     escaped = escaped.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="token-comment">$1</span>');
-    // Etiquetas y atributos HTML
     escaped = escaped.replace(/(&lt;\/?)([a-zA-Z0-9\-]+)(.*?)(&gt;)/g, (_match, open, tag, attrs, close) => {
       const coloredAttrs = attrs.replace(/([a-zA-Z\-:]+)=("[^"]*"|'[^']*')/g, '<span class="token-attr">$1</span>=<span class="token-string">$2</span>');
       return `${open}<span class="token-tag">${tag}</span>${coloredAttrs}${close}`;
     });
   } else {
-    // Strings (comillas dobles y simples)
     escaped = escaped.replace(/("[^"\\]*(?:\\.[^"\\]*)*")/g, '<span class="token-string">$1</span>');
     escaped = escaped.replace(/('[^'\\]*(?:\\.[^'\\]*)*')/g, '<span class="token-string">$1</span>');
-
-    // Comentarios // y /* */
     escaped = escaped.replace(/(\/\/[^\n]*)/g, '<span class="token-comment">$1</span>');
     escaped = escaped.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="token-comment">$1</span>');
     escaped = escaped.replace(/(#[^\n]*)/g, '<span class="token-comment">$1</span>');
-
-    // Palabras clave comunes (Java, JS, etc.)
     const keywords = /\b(public|private|protected|class|static|void|int|double|float|boolean|String|return|if|else|while|for|new|import|package|const|let|var|function|async|await|try|catch|finally|throw)\b/g;
     escaped = escaped.replace(keywords, '<span class="token-keyword">$1</span>');
-
-    // Números
     escaped = escaped.replace(/\b(\d+(\.\d+)?)\b/g, '<span class="token-number">$1</span>');
   }
 
   return escaped;
 }
 
-// ==================== 7. INTERACCIÓN DEL GATITO Y PARTÍCULAS ====================
-const CAT_REACTIONS = [
-  "Nya~ ✨",
-  "¡Prrr! ♥",
-  "(=^･ω･^=)",
-  "¡Miau! ✨",
-  "¡Qué suave! 🐾",
-  "¡Purrrr!",
-  "✨ (=`ω´=) ✨",
-  "¡Miauuu! 🎵"
-];
+// ==================== 8. INTERACCIÓN DEL GATITO Y PARTÍCULAS ====================
+const CAT_REACTIONS = ["Nya~ ✨", "¡Prrr! ♥", "(=^･ω･^=)", "¡Miau! ✨", "¡Qué suave! 🐾", "¡Purrrr!", "✨ (=`ω´=) ✨", "¡Miauuu! 🎵"];
 
 function spawnPixelParticle(x, y, symbol = "♥") {
   const particle = document.createElement("div");
@@ -432,19 +481,14 @@ function triggerCatPet(event) {
   state.petCount++;
   localStorage.setItem(STORAGE_KEYS.PETS, String(state.petCount));
   $("pet-count-label").textContent = `Mimado x${state.petCount} ✨`;
-
   audio.playPurr();
-
-  // Animación de salto / giro
   const catSvg = $("cat-svg-hero");
   if (catSvg) {
     catSvg.classList.remove("cat-spin");
-    void catSvg.offsetWidth; // Forzar reflow
+    void catSvg.offsetWidth;
     catSvg.classList.add("cat-spin");
     setTimeout(() => catSvg.classList.remove("cat-spin"), 600);
   }
-
-  // Bocadillo de diálogo con reacción aleatoria
   const bubble = $("cat-bubble");
   if (bubble) {
     const reaction = CAT_REACTIONS[Math.floor(Math.random() * CAT_REACTIONS.length)];
@@ -453,8 +497,6 @@ function triggerCatPet(event) {
     clearTimeout(bubble._timer);
     bubble._timer = setTimeout(() => bubble.classList.add("hidden"), 1600);
   }
-
-  // Generar partículas en la posición del clic
   const clientX = event?.clientX || window.innerWidth / 2;
   const clientY = event?.clientY || window.innerHeight / 2;
   const symbols = ["♥", "✨", "★", "🐾"];
@@ -466,52 +508,42 @@ function triggerCatPet(event) {
   }
 }
 
-// Seguimiento de cursor por las pupilas del gatito
 function setupCatEyeTracking() {
   const pupils = $("cat-pupils");
   const stage = $("cat-stage");
   if (!pupils || !stage) return;
-
   window.addEventListener("mousemove", (e) => {
     const rect = stage.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-
     const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
     const dist = Math.min(2.0, Math.hypot(e.clientX - centerX, e.clientY - centerY) / 80);
-
     const offsetX = Math.cos(angle) * dist;
     const offsetY = Math.sin(angle) * dist;
-
     pupils.style.transform = `translate(${offsetX.toFixed(1)}px, ${offsetY.toFixed(1)}px)`;
   });
 }
 
-// ==================== 8. PAISAJE Y AGUA INTERACTIVA ====================
+// ==================== 9. PAISAJE Y AGUA INTERACTIVA ====================
 function setupWaterRippleEffect() {
   const layer = $("water-ripple-layer");
   if (!layer) return;
-
   layer.addEventListener("click", (e) => {
     const rect = layer.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-
     const ripple = document.createElement("div");
     ripple.className = "interactive-ripple";
     ripple.style.left = `${x}px`;
     ripple.style.top = `${y}px`;
-
     layer.appendChild(ripple);
     audio.playPop();
-
     setTimeout(() => ripple.remove(), 800);
   });
 }
 
-// ==================== 9. EASTER EGGS ====================
+// ==================== 10. EASTER EGGS ====================
 function setupEasterEggs() {
-  // Easter egg del pinito en el logo
   const pine = $("brand-pine");
   if (pine) {
     pine.style.cursor = "pointer";
@@ -519,34 +551,18 @@ function setupEasterEggs() {
       e.preventDefault();
       audio.playTone(900, "triangle", 0.12, 1200);
       pine.style.transform = "rotate(360deg) scale(1.3)";
-      setTimeout(() => {
-        pine.style.transform = "";
-      }, 400);
-
+      setTimeout(() => { pine.style.transform = ""; }, 400);
       const rect = pine.getBoundingClientRect();
       for (let i = 0; i < 3; i++) {
-        setTimeout(() => {
-          spawnPixelParticle(rect.left + Math.random() * 20, rect.top + Math.random() * 20, "🌲");
-        }, i * 90);
+        setTimeout(() => { spawnPixelParticle(rect.left + Math.random() * 20, rect.top + Math.random() * 20, "🌲"); }, i * 90);
       }
       showToast("¡El bosque te saluda! 🌲✨");
     });
   }
-
-  // Código Konami: ↑ ↑ ↓ ↓ ← → ← → B A
-  const konamiSequence = [
-    "ArrowUp", "ArrowUp",
-    "ArrowDown", "ArrowDown",
-    "ArrowLeft", "ArrowRight",
-    "ArrowLeft", "ArrowRight",
-    "b", "a"
-  ];
+  const konamiSequence = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
   let konamiIndex = 0;
-
   document.addEventListener("keydown", (e) => {
-    // Si el usuario escribe en un campo de texto, no contar
     if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
-
     if (e.key.toLowerCase() === konamiSequence[konamiIndex].toLowerCase()) {
       konamiIndex++;
       if (konamiIndex === konamiSequence.length) {
@@ -556,8 +572,6 @@ function setupEasterEggs() {
     } else {
       konamiIndex = 0;
     }
-
-    // Atajo rápido '/' para buscar
     if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
       e.preventDefault();
       $("search-projects")?.focus();
@@ -579,31 +593,27 @@ function triggerCelebration() {
   }
 }
 
-// ==================== 10. GESTIÓN DE PERSISTENCIA ====================
+// ==================== 11. GESTIÓN DE PERSISTENCIA LOCAL ====================
 function saveState() {
   try {
-    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(state.projects));
     localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(state.profile));
   } catch (err) {
-    console.error("Error al guardar estado:", err);
+    console.error("Error al guardar estado local:", err);
   }
 }
 
 function loadState() {
   try {
-    const savedProj = localStorage.getItem(STORAGE_KEYS.PROJECTS);
     const savedProf = localStorage.getItem(STORAGE_KEYS.PROFILE);
     const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
     const savedSound = localStorage.getItem(STORAGE_KEYS.SOUND);
     const savedPets = localStorage.getItem(STORAGE_KEYS.PETS);
 
-    state.projects = savedProj ? JSON.parse(savedProj) : [...INITIAL_PROJECTS];
     state.profile = savedProf ? { ...DEFAULT_PROFILE, ...JSON.parse(savedProf) } : { ...DEFAULT_PROFILE };
     state.theme = savedTheme || "day";
     state.soundEnabled = savedSound !== "false";
     state.petCount = savedPets ? parseInt(savedPets, 10) || 0 : 0;
   } catch {
-    state.projects = [...INITIAL_PROJECTS];
     state.profile = { ...DEFAULT_PROFILE };
     state.theme = "day";
     state.soundEnabled = true;
@@ -611,7 +621,7 @@ function loadState() {
   }
 }
 
-// ==================== 11. ICONOS SVG POR CATEGORÍA ====================
+// ==================== 12. ICONOS SVG POR CATEGORÍA ====================
 function getCategoryIcon(category) {
   if (category === "Códigos HTML") {
     return `<svg width="26" height="26" class="pixel-art" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -638,56 +648,31 @@ function getCategoryIcon(category) {
   </svg>`;
 }
 
-// ==================== 12. RENDERIZADO ====================
+// ==================== 13. RENDERIZADO ====================
 function renderProfile() {
   $("profile-name").textContent = state.profile.name;
   $("profile-role").textContent = state.profile.role;
   $("profile-bio").textContent = state.profile.bio;
-
   const tags = state.profile.tags && state.profile.tags.length ? state.profile.tags : DEFAULT_PROFILE.tags;
-  $("profile-tags").innerHTML = tags
-    .map((tag) => `<span class="tag-item">#${escapeHtml(tag)}</span>`)
-    .join("");
+  $("profile-tags").innerHTML = tags.map((tag) => `<span class="tag-item">#${escapeHtml(tag)}</span>`).join("");
 }
 
 function renderProjects() {
   const query = state.searchQuery.toLowerCase();
   const filtered = state.projects.filter((p) => {
     const matchesCat = state.currentFilter === "Todos" || p.category === state.currentFilter;
-    const matchesSearch =
-      !query ||
-      p.title.toLowerCase().includes(query) ||
-      p.description.toLowerCase().includes(query) ||
-      (p.format || "").toLowerCase().includes(query);
+    const matchesSearch = !query || p.title.toLowerCase().includes(query) || (p.description || "").toLowerCase().includes(query) || (p.format || "").toLowerCase().includes(query);
     return matchesCat && matchesSearch;
   });
 
-  // Contador de proyectos
   $("projects-count").textContent = `${filtered.length} ${filtered.length === 1 ? "proyecto" : "proyectos"}`;
-
   const container = $("projects-list");
   if (!filtered.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <p>No se encontraron proyectos con ese criterio.</p>
-        <button type="button" id="btn-reset-filters" class="btn btn-ghost btn-sm" style="margin-top: 10px;">
-          Limpiar búsqueda
-        </button>
-      </div>
-    `;
-    $("btn-reset-filters")?.addEventListener("click", () => {
-      state.searchQuery = "";
-      state.currentFilter = "Todos";
-      $("search-projects").value = "";
-      $("btn-search-clear")?.classList.add("hidden");
-      document.querySelectorAll(".filter-tab").forEach((t) => t.classList.toggle("active", t.dataset.filter === "Todos"));
-      renderProjects();
-    });
+    container.innerHTML = `<div class="empty-state"><p>No se encontraron proyectos.</p></div>`;
     return;
   }
 
-  container.innerHTML = filtered
-    .map((proj, idx) => `
+  container.innerHTML = filtered.map((proj, idx) => `
     <article class="project-item" style="animation-delay: ${idx * 0.06}s">
       <div class="project-info">
         <div class="project-icon-box" title="${escapeHtml(proj.category)}">
@@ -702,19 +687,16 @@ function renderProjects() {
           <p class="project-desc">${escapeHtml(proj.description)}</p>
         </div>
       </div>
-
       <div class="project-actions">
         ${state.isAdmin ? `
-          <button type="button" class="btn btn-ghost btn-sm" data-edit="${proj.id}" title="Editar este proyecto">Editar</button>
-          <button type="button" class="btn btn-danger-soft btn-sm" data-delete="${proj.id}" title="Eliminar proyecto">Eliminar</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-edit="${proj.id}">Editar</button>
+          <button type="button" class="btn btn-danger-soft btn-sm" data-delete="${proj.id}">Eliminar</button>
         ` : ""}
         ${proj.code?.trim() ? `
-          <button type="button" class="btn btn-ghost btn-sm" data-quick-copy="${proj.id}" title="Copiar código fuente rápido">📋 Copiar</button>
-          <button type="button" class="btn btn-ghost btn-sm" data-view="${proj.id}" title="Abrir visor interactivo">Ver Código</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-quick-copy="${proj.id}">📋 Copiar</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-view="${proj.id}">Ver Código</button>
         ` : ""}
-        ${proj.url?.trim() ? `
-          <a href="${escapeHtml(proj.url)}" target="_blank" rel="noopener noreferrer" class="btn btn-coral btn-sm" title="Abrir enlace externo">Abrir ↗</a>
-        ` : ""}
+        ${proj.url?.trim() ? `<a href="${escapeHtml(proj.url)}" target="_blank" rel="noopener noreferrer" class="btn btn-coral btn-sm">Abrir ↗</a>` : ""}
       </div>
     </article>
   `).join("");
@@ -727,28 +709,19 @@ function updateAdminUI() {
   renderProjects();
 }
 
-// ==================== 13. VISOR DE CÓDIGO Y ESTUDIO EN VIVO ====================
+// ==================== 14. VISOR DE CÓDIGO Y ESTUDIO EN VIVO ====================
 function openCodeViewer(proj) {
   state.activeViewerProject = proj;
   $("viewer-title").textContent = proj.title;
   $("viewer-format").textContent = proj.format || ".txt";
   $("viewer-desc").textContent = proj.description;
-
   const rawCode = proj.code || "";
   const linesCount = rawCode ? rawCode.split("\n").length : 0;
   $("viewer-lines").textContent = `${linesCount} ${linesCount === 1 ? "línea" : "líneas"}`;
-
-  // Resaltado de sintaxis
-  const codeContentElem = $("viewer-code-content");
-  if (codeContentElem) {
-    codeContentElem.innerHTML = highlightCode(rawCode, proj.format);
-  }
-
+  $("viewer-code-content").innerHTML = highlightCode(rawCode, proj.format);
   const isHtml = (proj.format || "").toLowerCase().includes("html");
   $("viewer-tabs").classList.toggle("hidden", !isHtml);
   $("preview-viewport-controls").classList.toggle("hidden", !isHtml);
-
-  // Restablecer pestañas y controles
   showViewerTab("code");
   setPreviewDevice("full");
   openModal("modal-code-viewer");
@@ -760,10 +733,7 @@ function showViewerTab(tab) {
   $("tab-show-preview").classList.toggle("active", isPreview);
   $("viewer-code-pane").classList.toggle("hidden", isPreview);
   $("viewer-preview-pane").classList.toggle("hidden", !isPreview);
-
-  if (isPreview && state.activeViewerProject) {
-    loadPreviewIframe();
-  }
+  if (isPreview && state.activeViewerProject) loadPreviewIframe();
 }
 
 function loadPreviewIframe() {
@@ -776,43 +746,29 @@ function setPreviewDevice(mode) {
   state.activeDeviceMode = mode;
   const wrapper = $("preview-wrapper");
   if (!wrapper) return;
-
   const isMobile = mode === "mobile";
   wrapper.classList.toggle("mobile-frame", isMobile);
   $("btn-preview-device-full")?.classList.toggle("active", !isMobile);
   $("btn-preview-device-mobile")?.classList.toggle("active", isMobile);
 }
 
-// ==================== 14. CONFIGURACIÓN DE EVENTOS ====================
+// ==================== 15. CONFIGURACIÓN DE EVENTOS ====================
 function setupEvents() {
-  // Cierre de modales (botón data-close-modal, fondo exterior o Escape)
   document.querySelectorAll("[data-close-modal]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      audio.playClick();
-      closeModal(btn.dataset.closeModal);
-    });
+    btn.addEventListener("click", () => { audio.playClick(); closeModal(btn.dataset.closeModal); });
   });
 
   document.querySelectorAll(".modal").forEach((modal) => {
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) {
-        audio.playClick();
-        closeModal(modal.id);
-      }
-    });
+    modal.addEventListener("click", (e) => { if (e.target === modal) { audio.playClick(); closeModal(modal.id); } });
   });
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       const openM = document.querySelector(".modal:not(.hidden)");
-      if (openM) {
-        audio.playClick();
-        closeModal(openM.id);
-      }
+      if (openM) { audio.playClick(); closeModal(openM.id); }
     }
   });
 
-  // Delegación de eventos en la lista de proyectos
   $("projects-list").addEventListener("click", async (e) => {
     const viewBtn = e.target.closest("[data-view]");
     const editBtn = e.target.closest("[data-edit]");
@@ -821,30 +777,24 @@ function setupEvents() {
 
     if (viewBtn) {
       audio.playClick();
-      const proj = state.projects.find((p) => p.id === viewBtn.dataset.view);
+      const proj = state.projects.find((p) => String(p.id) === String(viewBtn.dataset.view));
       if (proj) openCodeViewer(proj);
     }
-
     if (copyBtn) {
-      const proj = state.projects.find((p) => p.id === copyBtn.dataset.quickCopy);
+      const proj = state.projects.find((p) => String(p.id) === String(copyBtn.dataset.quickCopy));
       if (proj && proj.code) {
         try {
           await navigator.clipboard.writeText(proj.code);
           audio.playSuccess();
           copyBtn.textContent = "¡Copiado! ✓";
-          setTimeout(() => {
-            copyBtn.textContent = "📋 Copiar";
-          }, 1600);
-          showToast(`Código de "${proj.title}" copiado`);
-        } catch {
-          showToast("No se pudo copiar automáticamente", true);
-        }
+          setTimeout(() => { copyBtn.textContent = "📋 Copiar"; }, 1600);
+          showToast(`Código copiado`);
+        } catch { showToast("Error al copiar", true); }
       }
     }
-
     if (editBtn && state.isAdmin) {
       audio.playClick();
-      const proj = state.projects.find((p) => p.id === editBtn.dataset.edit);
+      const proj = state.projects.find((p) => String(p.id) === String(editBtn.dataset.edit));
       if (!proj) return;
       $("modal-project-title").textContent = "Editar Publicación";
       $("project-id").value = proj.id;
@@ -856,97 +806,55 @@ function setupEvents() {
       $("project-code").value = proj.code || "";
       openModal("modal-project");
     }
-
     if (delBtn && state.isAdmin) {
       audio.playDelete();
-      const proj = state.projects.find((p) => p.id === delBtn.dataset.delete);
+      const proj = state.projects.find((p) => String(p.id) === String(delBtn.dataset.delete));
       if (!proj) return;
       state.deleteTargetId = proj.id;
-      $("delete-confirm-text").textContent = `¿Seguro que deseas eliminar "${proj.title}"? Esta acción no se puede deshacer.`;
+      $("delete-confirm-text").textContent = `¿Seguro que deseas eliminar "${proj.title}"?`;
       openModal("modal-confirm-delete");
     }
   });
 
-  // Filtros por pestañas
-  document.querySelectorAll(".filter-tabs .filter-tab").forEach((tab) => {
+  document.querySelectorAll(".filter-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       audio.playClick();
       state.currentFilter = tab.dataset.filter;
-      document.querySelectorAll(".filter-tabs .filter-tab").forEach((t) => {
-        t.classList.remove("active");
-        t.setAttribute("aria-selected", "false");
-      });
+      document.querySelectorAll(".filter-tab").forEach((t) => { t.classList.remove("active"); t.setAttribute("aria-selected", "false"); });
       tab.classList.add("active");
       tab.setAttribute("aria-selected", "true");
       renderProjects();
     });
   });
 
-  // Búsqueda en vivo
   const searchInput = $("search-projects");
   const clearSearchBtn = $("btn-search-clear");
-
   searchInput.addEventListener("input", (e) => {
     state.searchQuery = e.target.value.trim();
     clearSearchBtn?.classList.toggle("hidden", !state.searchQuery);
     renderProjects();
   });
+  clearSearchBtn?.addEventListener("click", () => { audio.playClick(); searchInput.value = ""; state.searchQuery = ""; clearSearchBtn.classList.add("hidden"); searchInput.focus(); renderProjects(); });
 
-  clearSearchBtn?.addEventListener("click", () => {
-    audio.playClick();
-    searchInput.value = "";
-    state.searchQuery = "";
-    clearSearchBtn.classList.add("hidden");
-    searchInput.focus();
-    renderProjects();
-  });
+  $("tab-show-code")?.addEventListener("click", () => { audio.playClick(); showViewerTab("code"); });
+  $("tab-show-preview")?.addEventListener("click", () => { audio.playClick(); showViewerTab("preview"); });
+  $("btn-preview-device-full")?.addEventListener("click", () => { audio.playClick(); setPreviewDevice("full"); });
+  $("btn-preview-device-mobile")?.addEventListener("click", () => { audio.playClick(); setPreviewDevice("mobile"); });
+  $("btn-preview-reload")?.addEventListener("click", () => { audio.playPop(); loadPreviewIframe(); showToast("Vista previa recargada 🔄"); });
 
-  // Visor de código: cambio de pestañas y emulador
-  $("tab-show-code").addEventListener("click", () => {
-    audio.playClick();
-    showViewerTab("code");
-  });
-
-  $("tab-show-preview").addEventListener("click", () => {
-    audio.playClick();
-    showViewerTab("preview");
-  });
-
-  $("btn-preview-device-full")?.addEventListener("click", () => {
-    audio.playClick();
-    setPreviewDevice("full");
-  });
-
-  $("btn-preview-device-mobile")?.addEventListener("click", () => {
-    audio.playClick();
-    setPreviewDevice("mobile");
-  });
-
-  $("btn-preview-reload")?.addEventListener("click", () => {
-    audio.playPop();
-    loadPreviewIframe();
-    showToast("Vista previa recargada 🔄");
-  });
-
-  // Copiar código dentro del visor
-  $("btn-copy-code").addEventListener("click", async () => {
+  $("btn-copy-code")?.addEventListener("click", async () => {
     if (!state.activeViewerProject) return;
     try {
       await navigator.clipboard.writeText(state.activeViewerProject.code || "");
       audio.playSuccess();
       const textSpan = $("btn-copy-text");
       if (textSpan) textSpan.textContent = "¡Copiado! ✓";
-      setTimeout(() => {
-        if (textSpan) textSpan.textContent = "Copiar Código";
-      }, 1800);
-      showToast("Código copiado al portapapeles ✓");
-    } catch {
-      showToast("No se pudo copiar automáticamente", true);
-    }
+      setTimeout(() => { if (textSpan) textSpan.textContent = "Copiar Código"; }, 1800);
+      showToast("Código copiado ✓");
+    } catch { showToast("Error al copiar", true); }
   });
 
-  // Descargar código fuente como archivo
-  $("btn-download-code").addEventListener("click", () => {
+  $("btn-download-code")?.addEventListener("click", () => {
     const proj = state.activeViewerProject;
     if (!proj) return;
     audio.playSuccess();
@@ -962,15 +870,11 @@ function setupEvents() {
     showToast(`Descargando ${filename}`);
   });
 
-  // Interacción con el gatito
   $("cat-stage")?.addEventListener("click", (e) => triggerCatPet(e));
   $("btn-pet-cat")?.addEventListener("click", (e) => triggerCatPet(e));
-
-  // Alternadores de Tema y Sonido
   $("btn-theme-toggle")?.addEventListener("click", toggleTheme);
   $("btn-sound-toggle")?.addEventListener("click", toggleSound);
 
-  // Acceso de Administrador / Propietario
   const openAdminAccess = () => {
     audio.playClick();
     if (state.isAdmin) {
@@ -982,11 +886,9 @@ function setupEvents() {
       setTimeout(() => $("input-pin").focus(), 60);
     }
   };
-
   $("btn-nav-admin").addEventListener("click", openAdminAccess);
   $("btn-hero-admin-access").addEventListener("click", openAdminAccess);
 
-  // Autenticación por PIN
   $("form-pin").addEventListener("submit", (e) => {
     e.preventDefault();
     if ($("input-pin").value.trim() === getStoredPin()) {
@@ -1008,7 +910,6 @@ function setupEvents() {
     showToast("Sesión de propietario finalizada");
   });
 
-  // Publicar Nuevo Proyecto
   $("btn-owner-add-project").addEventListener("click", () => {
     audio.playClick();
     $("modal-project-title").textContent = "Publicar Nuevo Proyecto";
@@ -1018,11 +919,9 @@ function setupEvents() {
     openModal("modal-project");
   });
 
-  // Guardar Proyecto (Nuevo o Edición)
-  $("form-project").addEventListener("submit", (e) => {
+  $("form-project").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!state.isAdmin) return;
-
     const id = $("project-id").value;
     const rawFmt = $("project-format").value.trim();
     const payload = {
@@ -1033,34 +932,17 @@ function setupEvents() {
       description: $("project-desc").value.trim(),
       code: $("project-code").value
     };
-
-    if (id) {
-      state.projects = state.projects.map((p) => (p.id === id ? { ...p, ...payload } : p));
-      showToast("Proyecto actualizado ✓");
-    } else {
-      state.projects.unshift({ id: `proj-${Date.now()}`, ...payload });
-      showToast("Proyecto publicado ✓");
-    }
-
-    audio.playSuccess();
-    saveState();
-    renderProjects();
+    await saveProjectToSupabase(payload, id ? id : null);
     closeModal("modal-project");
   });
 
-  // Eliminar Proyecto
-  $("btn-confirm-delete-action").addEventListener("click", () => {
+  $("btn-confirm-delete-action").addEventListener("click", async () => {
     if (!state.isAdmin || !state.deleteTargetId) return;
-    state.projects = state.projects.filter((p) => p.id !== state.deleteTargetId);
+    await deleteProjectFromSupabase(state.deleteTargetId);
     state.deleteTargetId = null;
-    audio.playDelete();
-    saveState();
-    renderProjects();
     closeModal("modal-confirm-delete");
-    showToast("Proyecto eliminado ✓");
   });
 
-  // Editar Perfil
   $("btn-owner-edit-profile").addEventListener("click", () => {
     audio.playClick();
     $("edit-profile-name").value = state.profile.name;
@@ -1086,7 +968,6 @@ function setupEvents() {
     showToast("Perfil actualizado ✓");
   });
 
-  // Cambiar PIN
   $("btn-owner-pin").addEventListener("click", () => {
     audio.playClick();
     $("new-admin-pin").value = "";
@@ -1101,7 +982,6 @@ function setupEvents() {
     showToast("PIN actualizado con éxito ✓");
   });
 
-  // Exportar Respaldo JSON
   $("btn-owner-backup").addEventListener("click", () => {
     audio.playSuccess();
     const data = JSON.stringify({ profile: state.profile, projects: state.projects }, null, 2);
@@ -1116,13 +996,15 @@ function setupEvents() {
   });
 }
 
-// ==================== 15. INICIALIZACIÓN ====================
-function initApp() {
+// ==================== 16. INICIALIZACIÓN ====================
+async function initApp() {
   loadState();
   setTheme(state.theme, false);
   updateSoundUI();
   renderProfile();
-  renderProjects();
+
+  // Cargar proyectos directamente desde Supabase
+  await loadProjectsFromSupabase();
 
   if (state.petCount > 0) {
     $("pet-count-label").textContent = `Mimado x${state.petCount} ✨`;
@@ -1134,7 +1016,6 @@ function initApp() {
   setupEasterEggs();
 }
 
-// Arrancar cuando el DOM esté listo
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initApp);
 } else {
